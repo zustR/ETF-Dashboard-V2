@@ -40,5 +40,14 @@ jobs:
           git add manifest.json
           if ! git diff --cached --quiet; then
             git commit -m "Generate Connect Cloud dependency manifest"
-            git push
+            for attempt in 1 2 3; do
+              git fetch origin "$GITHUB_REF_NAME"
+              git rebase "origin/$GITHUB_REF_NAME"
+              if git push origin "HEAD:$GITHUB_REF_NAME"; then
+                exit 0
+              fi
+              echo "Remote branch changed while publishing manifest (attempt $attempt)."
+            done
+            echo "::error::Could not publish manifest after 3 attempts."
+            exit 1
           fi
