@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feat/shinyapps-deployment
+      - feat/fundamental-opportunity-analysis
     paths:
       - app.R
       - R/**
@@ -30,7 +31,7 @@ jobs:
       - name: Install R packages for deployment
         run: Rscript -e 'install.packages(c("shiny", "quantmod", "rsconnect"), repos=Sys.getenv("RSPM", "https://cloud.r-project.org")); stopifnot(requireNamespace("rsconnect", quietly=TRUE), requireNamespace("shiny", quietly=TRUE), requireNamespace("quantmod", quietly=TRUE))'
       - name: Generate manifest.json
-        run: Rscript -e 'rsconnect::writeManifest(appDir=".", appFiles=c("app.R","R/risk.R","R/scanner.R"), appPrimaryDoc="app.R", appMode="shiny")'
+        run: Rscript -e 'rsconnect::writeManifest(appDir=".", appFiles=c("app.R","R/risk.R","R/scanner.R","R/fundamentals.R"), appPrimaryDoc="app.R", appMode="shiny")'
       - name: Commit manifest to feature branch
         run: |
           git config user.name "github-actions[bot]"

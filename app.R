@@ -6,6 +6,7 @@
 library(shiny)
 source('R/risk.R')
 source('R/scanner.R')
+source('R/fundamentals.R')
 
 money <- function(x) {
   paste0(format(round(x, 2), big.mark = ' ', decimal.mark = ',', nsmall = 2,
@@ -99,6 +100,32 @@ ui <- fluidPage(
         p(class='muted','Score pedagogique sur 100 base sur momentum, baisse historique et volatilite. Ni conseil d achat, ni probabilite de rendement.')
       )
     ),
+    tabPanel('Analyse fondamentale', br(),
+      div(class='panel-card',
+        h3('Evaluer une entreprise avec des chiffres documentes'),
+        p('Saisissez des indicateurs provenant du rapport financier officiel de l entreprise. Aucun chiffre fondamental n est invente ni telecharge automatiquement. Les valeurs initiales sont des EXEMPLES FICTIFS.'),
+        fluidRow(
+          column(4,
+            textInput('fund_symbol','Symbole boursier (action)',value='MSFT'),
+            numericInput('fund_growth','Croissance annuelle du chiffre d affaires (%) - EXEMPLE',value=10,min=-100,max=500),
+            numericInput('fund_margin','Marge nette (%) - EXEMPLE',value=15,min=-100,max=100),
+            numericInput('fund_pe','P/E positif - EXEMPLE',value=25,min=0.01),
+            numericInput('fund_debt','Dette / fonds propres (%) - EXEMPLE',value=50,min=0),
+            textInput('fund_source','Lien HTTPS du rapport financier (obligatoire)',value=''),
+            dateInput('fund_date','Date du document source',value=Sys.Date()),
+            actionButton('fund_eval','Calculer le score (pour apprentissage)')
+          ),
+          column(8,
+            h4('Resultat de l analyse'),
+            tableOutput('fund_table'),
+            textOutput('fund_message'),
+            p(class='muted','Score heuristique sur 100 : croissance 30, marge 30, endettement 20, P/E 20. Il ne predit aucun rendement et ne constitue pas une recommandation d achat.'),
+            p(class='muted','Ces ratios ne sont pas universellement comparables entre secteurs, notamment banques et entreprises technologiques. P/E non applicable aux societes en perte.'),
+            p(class='muted','Si votre argent est necessaire dans 1 a 3 ans, conservez l analyse des actions dans un portefeuille virtuel.')
+          )
+        )
+      )
+    ),
     tabPanel('Méthode', br(),
       div(class = 'panel-card',
         h3('Règles de qualité des données'),
@@ -182,6 +209,27 @@ server <- function(input, output, session) {
                   'Score /100','Date du dernier cours')
     x
   }, striped=TRUE)
+  fundamental_result <- eventReactive(input$fund_eval, {
+    tryCatch(
+      list(data=fundamental_score(
+        trimws(input$fund_symbol), input$fund_growth, input$fund_margin,
+        input$fund_pe, input$fund_debt, trimws(input$fund_source),
+        input$fund_date), error=NULL),
+      error=function(e) list(data=NULL,error=conditionMessage(e))
+    )
+  }, ignoreInit=TRUE)
+  output$fund_table <- renderTable({
+    x <- fundamental_result()
+    req(!is.null(x$data))
+    x$data[,c('Symbole','Score','Croissance','Marge_nette','PE',
+              'Dette_fonds_propres','Date_source','Statut')]
+  }, striped=TRUE)
+  output$fund_message <- renderText({
+    x <- fundamental_result()
+    if (!is.null(x$error)) return(paste('Verifier les donnees :',x$error))
+    paste('Source declaree :',x$data$Source,
+          '— Les chiffres sont fournis par l utilisateur et ne sont pas verifies automatiquement.')
+  })
   output$options <- renderTable({
     data.frame(
       Produit = c('Compte d’épargne admissible', 'CPG encaissable admissible', 'CPG non encaissable admissible', 'ETF de trésorerie', 'Actions individuelles'),
