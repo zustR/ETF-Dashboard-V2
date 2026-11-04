@@ -5,6 +5,7 @@
 
 library(shiny)
 source('R/risk.R')
+source('R/scanner.R')
 
 money <- function(x) {
   paste0(format(round(x, 2), big.mark = ' ', decimal.mark = ',', nsmall = 2,
@@ -85,6 +86,19 @@ ui <- fluidPage(
         p(class = 'muted', 'Hypotheses de calcul, pas de promesse de resultat. Le simulateur utilise un taux constant choisi par vous.')
       )
     ),
+    tabPanel('Scanner historique', br(),
+      div(class='panel-card',
+        h3('Titres a surveiller (aucun ordre d achat)'),
+        p('Cotations Yahoo Finance ajustees, si disponibles. Un score eleve ne predit pas une hausse future.'),
+        checkboxGroupInput('scan_symbols', 'Choisir les titres',
+          choices=scanner_universe$Symbole,
+          selected=c('XEQT.TO','XIC.TO','RY.TO')),
+        actionButton('scan_go', 'Actualiser les analyses'),
+        p(class='muted','Les donnees peuvent etre differees, incompletes ou indisponibles. Les pertes sont possibles sur tout ETF ou action.'),
+        tableOutput('scanner_table'),
+        p(class='muted','Score pedagogique sur 100 base sur momentum, baisse historique et volatilite. Ni conseil d achat, ni probabilite de rendement.')
+      )
+    ),
     tabPanel('Méthode', br(),
       div(class = 'panel-card',
         h3('Règles de qualité des données'),
@@ -152,6 +166,22 @@ server <- function(input, output, session) {
     paste('Versement mensuel theorique necessaire :', money(need),
           '(a taux constant et sans frais ni impots).')
   })
+  scanner_data <- eventReactive(input$scan_go, {
+    req(length(input$scan_symbols)>0)
+    scan_symbols(input$scan_symbols)
+  }, ignoreInit=TRUE)
+  output$scanner_table <- renderTable({
+    req(scanner_data())
+    x <- scanner_data()
+    for (nm in c('Dernier_cours','Momentum_90','Volatilite','Baisse_max','Score')) {
+      x[[nm]] <- ifelse(is.na(x[[nm]]), NA_character_,
+                        format(round(x[[nm]],2), nsmall=2, decimal.mark=','))
+    }
+    names(x) <- c('Symbole','Statut','Dernier cours ajuste',
+                  'Momentum 90 (%)','Volatilite (%)','Baisse maximale (%)',
+                  'Score /100','Date du dernier cours')
+    x
+  }, striped=TRUE)
   output$options <- renderTable({
     data.frame(
       Produit = c('Compte d’épargne admissible', 'CPG encaissable admissible', 'CPG non encaissable admissible', 'ETF de trésorerie', 'Actions individuelles'),
