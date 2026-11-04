@@ -1,0 +1,38 @@
+name: Generate Posit Connect Cloud manifest
+
+on:
+  push:
+    branches:
+      - feat/shinyapps-deployment
+    paths:
+      - app.R
+      - R/**
+      - .github/workflows/connect-cloud-manifest.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  manifest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+      - name: Install R packages for deployment
+        run: Rscript -e 'install.packages(c("shiny", "quantmod", "rsconnect"), repos="https://cloud.r-project.org")'
+      - name: Generate manifest.json
+        run: Rscript -e 'rsconnect::writeManifest(appDir=".", appFiles=c("app.R","R/risk.R","R/scanner.R"), appPrimaryDoc="app.R", appMode="shiny")'
+      - name: Commit manifest to feature branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add manifest.json
+          if ! git diff --cached --quiet; then
+            git commit -m "Generate Connect Cloud dependency manifest"
+            git push
+          fi
