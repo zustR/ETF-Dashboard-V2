@@ -5,6 +5,7 @@ on:
     branches:
       - feat/shinyapps-deployment
       - feat/fundamental-opportunity-analysis
+      - feat/sec-automatic-fundamentals
     paths:
       - app.R
       - R/**
@@ -29,9 +30,9 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libuv1-dev libcurl4-openssl-dev libssl-dev libxml2-dev
       - name: Install R packages for deployment
-        run: Rscript -e 'install.packages(c("shiny", "quantmod", "rsconnect"), repos=Sys.getenv("RSPM", "https://cloud.r-project.org")); stopifnot(requireNamespace("rsconnect", quietly=TRUE), requireNamespace("shiny", quietly=TRUE), requireNamespace("quantmod", quietly=TRUE))'
+        run: Rscript -e 'install.packages(c("shiny", "quantmod", "httr2", "jsonlite", "rsconnect"), repos=Sys.getenv("RSPM", "https://cloud.r-project.org")); stopifnot(requireNamespace("rsconnect", quietly=TRUE), requireNamespace("shiny", quietly=TRUE), requireNamespace("quantmod", quietly=TRUE))'
       - name: Generate manifest.json
-        run: Rscript -e 'rsconnect::writeManifest(appDir=".", appFiles=c("app.R","R/risk.R","R/scanner.R","R/fundamentals.R"), appPrimaryDoc="app.R", appMode="shiny")'
+        run: Rscript -e 'rsconnect::writeManifest(appDir=".", appFiles=c("app.R","R/risk.R","R/scanner.R","R/fundamentals.R","R/sec_fundamentals.R"), appPrimaryDoc="app.R", appMode="shiny")'
       - name: Commit manifest to feature branch
         run: |
           git config user.name "github-actions[bot]"
