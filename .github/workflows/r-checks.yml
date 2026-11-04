@@ -14,8 +14,8 @@ jobs:
         with:
           use-public-rspm: true
       - name: Install dependencies
-        run: Rscript -e 'install.packages(c("shiny", "quantmod"), repos="https://cloud.r-project.org")'
+        run: Rscript -e 'install.packages(c("shiny", "quantmod", "httr2", "jsonlite"), repos="https://cloud.r-project.org")'
       - name: Check R syntax and score inputs
-        run: Rscript -e 'parse(file="app.R"); parse(file="R/risk.R"); parse(file="R/scanner.R"); parse(file="R/fundamentals.R"); parse(file="tests/run_tests.R")'
+        run: Rscript -e 'parse(file="app.R"); parse(file="R/risk.R"); parse(file="R/scanner.R"); parse(file="R/fundamentals.R"); parse(file="R/sec_fundamentals.R"); parse(file="tests/run_tests.R"); parse(file="tests/scanner_tests.R"); parse(file="tests/fundamentals_tests.R"); parse(file="tests/sec_fundamentals_tests.R")'
       - name: Run financial calculation tests
-        run: Rscript tests/run_tests.R && Rscript tests/scanner_tests.R && Rscript tests/fundamentals_tests.R
+        run: Rscript tests/run_tests.R && Rscript tests/scanner_tests.R && Rscript tests/fundamentals_tests.R && Rscript tests/sec_fundamentals_tests.R
