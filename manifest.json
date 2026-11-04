@@ -1036,7 +1036,10 @@
   },
   "files": {
     "app.R": {
-      "checksum": "d47c96f9bda6a84efd0c6b53b1d44c1c"
+      "checksum": "1ad973a0db8039fe3a9fbaa75dcb0f45"
+    },
+    "R/fundamentals.R": {
+      "checksum": "7852fa0ff08e4399d74378c9a3b34284"
     },
     "R/risk.R": {
       "checksum": "9751cae54c7b0d35250b1c5b479e4134"
