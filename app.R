@@ -7,6 +7,7 @@ library(shiny)
 source('R/risk.R')
 source('R/scanner.R')
 source('R/fundamentals.R')
+source('R/sec_fundamentals.R')
 
 money <- function(x) {
   paste0(format(round(x, 2), big.mark = ' ', decimal.mark = ',', nsmall = 2,
@@ -126,6 +127,18 @@ ui <- fluidPage(
         )
       )
     ),
+    tabPanel('Données SEC automatiques', br(),
+      div(class='panel-card',
+        h3('Etats financiers SEC — entreprises americaines'),
+        p('Cette analyse extrait uniquement les exercices annuels comparables publics (10-K). Pas de cours en temps reel, de P/E ni de recommandation d achat.'),
+        textInput('sec_symbol','Symbole américain (ex. MSFT, NVDA)',value='MSFT'),
+        actionButton('sec_load','Charger les données financières SEC'),
+        p(class='muted','Source : SEC EDGAR CompanyFacts. Les données peuvent manquer, être anciennes ou être indisponibles. Les actions canadiennes ne sont pas prises en charge dans cet onglet.'),
+        tableOutput('sec_table'),
+        textOutput('sec_error'),
+        p(class='muted','Pour l épargne indispensable dans 1 à 3 ans : analyse à but éducatif, portefeuille virtuel seulement.')
+      )
+    ),
     tabPanel('Méthode', br(),
       div(class = 'panel-card',
         h3('Règles de qualité des données'),
@@ -229,6 +242,31 @@ server <- function(input, output, session) {
     if (!is.null(x$error)) return(paste('Verifier les donnees :',x$error))
     paste('Source declaree :',x$data$Source,
           '— Les chiffres sont fournis par l utilisateur et ne sont pas verifies automatiquement.')
+  })
+  sec_data <- eventReactive(input$sec_load, {
+    tryCatch(list(data=sec_get_company(input$sec_symbol),error=NULL),
+             error=function(e) list(data=NULL,error=conditionMessage(e)))
+  }, ignoreInit=TRUE)
+  output$sec_table <- renderTable({
+    x <- sec_data()
+    req(!is.null(x$data))
+    d <- x$data
+    data.frame(
+      Indicateur=c('Entreprise','Symbole','Exercice','Exercice precedent',
+       'Croissance du chiffre d affaires','Marge nette',
+       'Revenus annuels (USD)','Resultat net (USD)','Dernier depot SEC',
+       'Etat de fraicheur','Source officielle'),
+      Valeur=c(d$Entreprise,d$Symbole,d$Exercice,d$Exercice_precedent,
+        paste0(d$Croissance_pct,' %'),paste0(d$Marge_nette_pct,' %'),
+        format(d$Revenus_USD,big.mark=' ',scientific=FALSE),
+        format(d$Resultat_net_USD,big.mark=' ',scientific=FALSE),
+        d$Dernier_depot,d$Fraicheur,d$Source),
+      check.names=FALSE)
+  }, striped=TRUE)
+  output$sec_error <- renderText({
+    x <- sec_data()
+    if (!is.null(x$error)) return(paste('Données indisponibles :',x$error))
+    paste(x$data$Note,'— Vérifiez les dépôts SEC avant toute interprétation.')
   })
   output$options <- renderTable({
     data.frame(
