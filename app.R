@@ -4,6 +4,7 @@
 # Cette application ne télécharge pas de prix ni ne recommande des titres.
 
 library(shiny)
+source('R/risk.R')
 
 money <- function(x) {
   paste0(format(round(x, 2), big.mark = ' ', decimal.mark = ',', nsmall = 2,
@@ -71,6 +72,19 @@ ui <- fluidPage(
           p('Prochaine étape : ajouter des sources de marché identifiées, des historiques ajustés et une simulation de portefeuille virtuel.'))
       )
     ),
+    tabPanel('Mon risque', br(),
+      div(class = 'panel-card',
+        h3('Scenario de baisse — simulation uniquement'),
+        p('Si cet argent est indispensable dans 1 a 3 ans, la part en actions devrait rester dans le portefeuille virtuel.'),
+        sliderInput('risky_pct', 'Part du capital exposee aux actions (%)', min = 0, max = 30, value = 0, step = 5),
+        sliderInput('loss_pct', 'Baisse simulee de la part risquee (%)', min = 0, max = 80, value = 40, step = 5),
+        tableOutput('risk_table'),
+        textOutput('risk_warning'),
+        h4('Combien epargner par mois pour atteindre mon objectif ?'),
+        textOutput('monthly_needed'),
+        p(class = 'muted', 'Hypotheses de calcul, pas de promesse de resultat. Le simulateur utilise un taux constant choisi par vous.')
+      )
+    ),
     tabPanel('Méthode', br(),
       div(class = 'panel-card',
         h3('Règles de qualité des données'),
@@ -120,6 +134,23 @@ server <- function(input, output, session) {
     final <- tail(timeline()$projection, 1)
     if (final >= input$target) paste('Objectif atteint dans cette simulation :', money(final), 'pour', money(input$target), 'visés.')
     else paste('Écart à l’objectif dans cette simulation :', money(input$target - final), '.')
+  })
+  output$risk_table <- renderTable({
+    s <- risk_scenario(tail(timeline()$versements, 1), input$risky_pct, input$loss_pct)
+    data.frame(Indicateur = c('Total des versements prevus', 'Part soumise a une baisse',
+                              'Perte hypothetique', 'Capital restant hors interets'),
+               Montant = vapply(as.numeric(s[1,]), money, character(1)),
+               check.names = FALSE)
+  }, striped = TRUE)
+  output$risk_warning <- renderText({
+    if (input$risky_pct == 0) 'Scenario prudent : aucun capital expose aux actions dans cette simulation.'
+    else 'Attention : meme une petite part en actions peut subir des pertes au moment du retrait.'
+  })
+  output$monthly_needed <- renderText({
+    req(valid_inputs())
+    need <- required_monthly_saving(input$target, input$initial, input$months, input$rate)
+    paste('Versement mensuel theorique necessaire :', money(need),
+          '(a taux constant et sans frais ni impots).')
   })
   output$options <- renderTable({
     data.frame(
