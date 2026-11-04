@@ -16,6 +16,6 @@ jobs:
       - name: Install dependencies
         run: Rscript -e 'install.packages(c("shiny", "quantmod"), repos="https://cloud.r-project.org")'
       - name: Check R syntax
-        run: Rscript -e 'parse(file="app.R"); parse(file="R/risk.R"); parse(file="R/scanner.R"); parse(file="tests/run_tests.R")'
+        run: Rscript -e 'parse(file="app.R"); parse(file="R/risk.R"); parse(file="R/scanner.R"); parse(file="R/fundamentals.R"); parse(file="tests/run_tests.R")'
       - name: Run financial calculation tests
-        run: Rscript tests/run_tests.R && Rscript tests/scanner_tests.R
+        run: Rscript tests/run_tests.R && Rscript tests/scanner_tests.R && Rscript tests/fundamentals_tests.R
